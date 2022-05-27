@@ -2,6 +2,8 @@
 
 This project contains a small demo for AWS X-ray usage. It deploys an apigateway with two lambdas, which will send traces to X-ray. AWS CDK is utilized in the deployment.
 
+The X-Ray instrumentation in this demo is done using Javascript SDK for the AWS X-Ray.
+
 ## Deploying
 
     npm ci
@@ -106,4 +108,41 @@ the `.captureAWSClient` wraps the given AWS SDK client and adds a subsegment aut
 
 ### Custom subsegments
 
-The X-Ray SDK can be used to create custom subsegments. You define when the subsegment starts and ends, and you can add any number of custom metadata and annotations
+The X-Ray SDK can be used to create custom subsegments. You define when the subsegment starts and ends, and you can add any number of custom metadata and annotations.
+
+A simple JS example:
+
+```
+const subsegment = AWSXRay.getSegment()?.addNewSubsegment('MySubsegment');
+
+// Do some stuff you wan't to trace
+
+subsegment?.close();
+```
+
+This creates a subsegment which shows the time it took for it to complete in the segment.
+
+For a more robust way to handle subsegments, especially in case of errors, would be to create a helper function which has error handling.
+
+Example helper:
+
+```typescript
+const traceWithXray = async <T>(
+  subsegmentName: string,
+  f: () => Promise<T>
+) => {
+  const subsegment = AWSXRay.getSegment()?.addNewSubsegment(subsegmentName);
+
+  try {
+    const result = await f();
+    subsegment?.close();
+    return result;
+  } catch (err) {
+    subsegment?.addError((err as Error).message);
+    subsegment?.close();
+    throw err;
+  }
+};
+```
+
+This way it is easy to use and any errors will be recorded to the trace as well.
