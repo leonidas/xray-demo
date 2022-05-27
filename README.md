@@ -146,3 +146,7 @@ const traceWithXray = async <T>(
 ```
 
 This way it is easy to use and any errors will be recorded to the trace as well.
+
+## Nice to know
+
+- Don't use commas in a subsegment name
